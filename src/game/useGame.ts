@@ -86,9 +86,9 @@ function rand(min:number, max:number){return Math.random()*(max-min)+min}
 
 function defaultMines():Mine[]{
   return [
-    { id: 'm1', name: 'Mine de Surface', level:1, baseProduction: 0.5, unlockCost: 0, unlocked:true },
-    { id: 'm2', name: 'Mine Souterraine', level:1, baseProduction: 1.5, unlockCost: 8000, unlocked:false },
-    { id: 'm3', name: 'Gisement Rare', level:1, baseProduction: 5, unlockCost: 50000, unlocked:false }
+    { id: 'm1', name: 'Mine de Surface', level:1, baseProduction: 0.3, unlockCost: 0, unlocked:true },
+    { id: 'm2', name: 'Mine Souterraine', level:1, baseProduction: 1.0, unlockCost: 20000, unlocked:false },
+    { id: 'm3', name: 'Gisement Rare', level:1, baseProduction: 3.0, unlockCost: 200000, unlocked:false }
   ]
 }
 
@@ -109,7 +109,7 @@ function defaultEnterprises():Enterprise[]{
 }
 
 function defaultTool():Tool{
-  return { id: 't1', name: 'Pelle', emoji: '🪓', level: 1, xp: 0, xpNeeded: 100, multiplier: 1 }
+  return { id: 't1', name: 'Pelle', emoji: '🪓', level: 1, xp: 0, xpNeeded: 300, multiplier: 1 }
 }
 
 const TOOLS = [
@@ -198,7 +198,7 @@ export function useGame(){
             if(mgr.targetMineId){
               const mine = prev.mines.find(x=> x.id === mgr.targetMineId)
               if(mine){
-                const cost = Math.round(80 * Math.pow(1.7, mine.level-1))
+                const cost = Math.round(300 * Math.pow(1.85, mine.level-1))
                 if(moneyAcc >= cost){
                   moneyAcc -= cost
                 }
@@ -220,8 +220,8 @@ export function useGame(){
         const produced = minersProd + minesProd
         let newMined = prev.mined + produced
         
-        // Add XP to tool
-        let tool = {...prev.tool, xp: prev.tool.xp + produced}
+        // Add XP to tool (scaled down to slow progression)
+        let tool = {...prev.tool, xp: prev.tool.xp + produced * 0.25}
         let lastEvent = prev.lastEvent
         
         // Check tool level up
@@ -243,10 +243,10 @@ export function useGame(){
           }
         }
 
-        // Auto-sell if enabled and price is high
+        // Auto-sell if enabled and price is high (reduced throughput)
         let autoSoldMoney = 0
         if(prev.autoSellLevel > 0 && newMined > 0 && prev.marketPrice >= prev.autoSellPrice){
-          const amountToSell = Math.min(newMined, Math.floor(prev.autoSellLevel * 50))
+          const amountToSell = Math.min(newMined, Math.floor(prev.autoSellLevel * 25))
           autoSoldMoney = amountToSell * prev.marketPrice
           newMined -= amountToSell
         }
@@ -259,11 +259,11 @@ export function useGame(){
         let p = prev.marketPrice
         const priceChange = Math.sin(Date.now()/8000 + tickRef.current)*0.025 + rand(-0.015, 0.025)
         
-        // 2% chance of market crash
-        if(Math.random() < 0.02 && tickRef.current % 10 === 0){
+        // ~3% chance of market crash
+        if(Math.random() < 0.03 && tickRef.current % 10 === 0){
           p *= 0.7 // 30% crash
           lastEvent = { id: Date.now().toString(), type: 'crash', trigger: tickRef.current }
-        } else if(Math.random() < 0.01 && tickRef.current % 15 === 0){
+        } else if(Math.random() < 0.008 && tickRef.current % 15 === 0){
           p *= 1.4 // 40% boom
           lastEvent = { id: Date.now().toString(), type: 'boom', trigger: tickRef.current }
         } else {
@@ -283,7 +283,7 @@ export function useGame(){
             if(mgr.targetMineId){
               const mi = mines.find(x=> x.id === mgr.targetMineId)
               if(mi){
-                const cost = Math.round(80 * Math.pow(1.7, mi.level-1))
+                const cost = Math.round(300 * Math.pow(1.85, mi.level-1))
                 if(remainingMoney >= cost){
                   mi.level += 1
                   remainingMoney -= cost
@@ -359,7 +359,7 @@ export function useGame(){
     setState(prev=>{
       const mine = prev.mines.find(m=>m.id===id)
       if(!mine) return prev
-      const cost = Math.round(80 * Math.pow(1.7, mine.level-1))
+      const cost = Math.round(300 * Math.pow(1.85, mine.level-1))
       if(prev.money < cost) return prev
       const mines = prev.mines.map(m=> m.id===id ? {...m, level:m.level+1} : m)
       return {...prev, mines, money: Number((prev.money - cost).toFixed(2))}
@@ -425,7 +425,7 @@ export function useGame(){
   }
 
   function upgradeAutoSell(level: number){
-    const cost = Math.round(500 * Math.pow(1.8, level))
+    const cost = Math.round(1200 * Math.pow(2, level))
     setState(prev=>{
       if(prev.money < cost) return prev
       return {...prev, autoSellLevel: level + 1, money: Number((prev.money - cost).toFixed(2))}
@@ -438,7 +438,7 @@ export function useGame(){
 
   function purchaseToolXP(amount: number = 100){
     setState(prev=>{
-      const baseCost = Math.round(5000 * Math.pow(2, Math.max(0, prev.tool.level-1)))
+      const baseCost = Math.round(20000 * Math.pow(2.5, Math.max(0, prev.tool.level-1)))
       const cost = Math.round(baseCost * (amount / 100))
       if(prev.money < cost) return prev
       const tool = {...prev.tool, xp: prev.tool.xp + amount}

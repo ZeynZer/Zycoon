@@ -9,6 +9,8 @@ type Particle = {
   maxLife: number
   size: number
   color: string
+  isEmoji?: boolean
+  emoji?: string
 }
 
 export default function ParticleSystem() {
@@ -39,10 +41,19 @@ export default function ParticleSystem() {
         p.life -= 1
 
         const alpha = (p.life / p.maxLife) * 0.8
-        ctx.fillStyle = p.color.replace(')', `, ${alpha})`)
-        ctx.beginPath()
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
-        ctx.fill()
+        if (p.isEmoji && p.emoji) {
+          ctx.globalAlpha = alpha
+          ctx.font = `${Math.max(12, p.size * 6)}px serif`
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'middle'
+          ctx.fillText(p.emoji, p.x, p.y)
+          ctx.globalAlpha = 1
+        } else {
+          ctx.fillStyle = p.color.replace(')', `, ${alpha})`)
+          ctx.beginPath()
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
+          ctx.fill()
+        }
 
         if (p.life <= 0) {
           particles.splice(i, 1)
@@ -57,8 +68,8 @@ export default function ParticleSystem() {
     return () => cancelAnimationFrame(animationRef.current)
   }, [])
 
-  const addParticles = (x: number, y: number, type: 'mine' | 'sell' | 'upgrade') => {
-    const count = type === 'mine' ? 3 : type === 'sell' ? 8 : 5
+  const addParticles = (x: number, y: number, type: 'mine' | 'sell' | 'upgrade' | 'coin', emoji?: string, countOverride?: number) => {
+    const count = typeof countOverride === 'number' ? countOverride : (type === 'mine' ? 3 : type === 'sell' ? 8 : type === 'upgrade' ? 5 : 10)
     const colors =
       type === 'mine'
         ? ['rgba(251, 191, 36, 1)', 'rgba(249, 115, 22, 1)']
@@ -67,24 +78,30 @@ export default function ParticleSystem() {
         : ['rgba(59, 130, 246, 1)', 'rgba(139, 92, 246, 1)']
 
     for (let i = 0; i < count; i++) {
-      const angle = (Math.PI * 2 * i) / count
+      const angle = (Math.PI * 2 * i) / Math.max(1, count)
       const speed = 2 + Math.random() * 3
+      const isEmoji = type === 'coin' || !!emoji
       particlesRef.current.push({
         x,
         y,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 1,
+        vx: Math.cos(angle) * (speed + Math.random() * 2),
+        vy: Math.sin(angle) * (speed + Math.random() * 2) - 1,
         life: 60 + Math.random() * 40,
         maxLife: 100,
-        size: 2 + Math.random() * 3,
-        color: colors[Math.floor(Math.random() * colors.length)]
-      })
+        size: isEmoji ? (8 + Math.random() * 8) : (2 + Math.random() * 3),
+        color: colors[Math.floor(Math.random() * colors.length)],
+        isEmoji: isEmoji,
+        emoji: emoji || (isEmoji ? '💵' : undefined)
+      } as Particle)
     }
   }
 
   useEffect(() => {
     // Expose globally for other components
     ;(window as any).__particles = { addParticles }
+    ;(window as any).__spawnEmoji = (x:number,y:number,emoji:string,count:number=8) => {
+      addParticles(x, y, 'coin', emoji, count)
+    }
   }, [])
 
   const handleResize = () => {
@@ -108,7 +125,7 @@ export default function ParticleSystem() {
         top: 0,
         left: 0,
         pointerEvents: 'none',
-        zIndex: 0
+        zIndex: 9999
       }}
     />
   )
