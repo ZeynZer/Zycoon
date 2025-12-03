@@ -87,6 +87,14 @@ select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 12px rgba(52
 @keyframes slideDown{from{opacity:0;transform:translateX(-50%) translateY(-30px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 @keyframes slideUp{from{opacity:1;transform:translateX(-50%) translateY(0)}to{opacity:0;transform:translateX(-50%) translateY(-30px)}}
 
+/* Shake and gold glow */
+.shake{animation:shakeIt 0.65s linear}
+@keyframes shakeIt{0%{transform:translateX(0)}10%{transform:translateX(-6px)}20%{transform:translateX(6px)}30%{transform:translateX(-4px)}40%{transform:translateX(4px)}50%{transform:translateX(-2px)}60%{transform:translateX(2px)}70%{transform:translateX(-1px)}80%{transform:translateX(1px)}100%{transform:translateX(0)}}
+.gold-glow{box-shadow:0 10px 40px rgba(251,191,36,0.25),0 0 18px rgba(251,191,36,0.12) inset}
+
+/* Emoji particle base style (used by runtime-created elements) */
+.emoji-float{position:fixed;pointer-events:none;font-size:20px;transition:transform 900ms ease-out, opacity 900ms linear}
+
 /* Responsive for mobile */
 @media(max-width:600px){
   .side-panel{width:100%;right:-100%}

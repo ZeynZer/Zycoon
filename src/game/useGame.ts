@@ -436,5 +436,15 @@ export function useGame(){
     setState(prev=> ({...prev, autoSellPrice: price}))
   }
 
-  return {state, hireMiner, fireMiner, upgradeMiner, upgradeMine, sellAll, unlockMine, hireManager, setManagerTarget, upgradeSkill, acquireEnterprise, upgradeAutoSell, setAutoSellPrice}
+  function purchaseToolXP(amount: number = 100){
+    setState(prev=>{
+      const baseCost = Math.round(5000 * Math.pow(2, Math.max(0, prev.tool.level-1)))
+      const cost = Math.round(baseCost * (amount / 100))
+      if(prev.money < cost) return prev
+      const tool = {...prev.tool, xp: prev.tool.xp + amount}
+      return {...prev, money: Number((prev.money - cost).toFixed(2)), tool}
+    })
+  }
+
+  return {state, hireMiner, fireMiner, upgradeMiner, upgradeMine, sellAll, unlockMine, hireManager, setManagerTarget, upgradeSkill, acquireEnterprise, upgradeAutoSell, setAutoSellPrice, purchaseToolXP}
 }

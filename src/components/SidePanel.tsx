@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
-import { triggerParticles } from '../game/useParticles'
+import { triggerParticles, spawnEmoji } from '../game/useParticles'
 
 type TabType = 'skills' | 'enterprises' | 'stats' | 'tool' | 'autosell'
 
-export default function SidePanel({skills=[],enterprises=[],state,onUpgradeSkill,onAcquireEnterprise,onUpgradeAutoSell,onSetAutoSellPrice}:{skills:any[],enterprises:any[],state:any,onUpgradeSkill:(id:string)=>void,onAcquireEnterprise:(id:string)=>void,onUpgradeAutoSell:(level:number)=>void,onSetAutoSellPrice:(price:number)=>void}){
+export default function SidePanel({skills=[],enterprises=[],state,onUpgradeSkill,onAcquireEnterprise,onUpgradeAutoSell,onSetAutoSellPrice,onPurchaseToolXP}:{skills:any[],enterprises:any[],state:any,onUpgradeSkill:(id:string)=>void,onAcquireEnterprise:(id:string)=>void,onUpgradeAutoSell:(level:number)=>void,onSetAutoSellPrice:(price:number)=>void,onPurchaseToolXP:(amount?:number)=>void}){
   const [tab, setTab] = useState<TabType>('skills')
   const [isOpen, setIsOpen] = useState(false)
 
@@ -17,6 +17,13 @@ export default function SidePanel({skills=[],enterprises=[],state,onUpgradeSkill
     const rect = e.currentTarget.getBoundingClientRect()
     triggerParticles(rect.left + rect.width / 2, rect.top + rect.height / 2, 'mine')
     onAcquireEnterprise(enterpriseId)
+  }
+
+  const handlePurchaseXP = (amt:number) => (e: React.MouseEvent<HTMLButtonElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    spawnEmoji(rect.left + rect.width / 2, rect.top + rect.height / 2, '💰', 12)
+    triggerParticles(rect.left + rect.width / 2, rect.top + rect.height / 2, 'upgrade')
+    onPurchaseToolXP(amt)
   }
 
   return (
@@ -89,6 +96,14 @@ export default function SidePanel({skills=[],enterprises=[],state,onUpgradeSkill
                 <div className="muted" style={{marginTop:8}}>XP: {state.tool.xp.toFixed(0)}/{state.tool.xpNeeded}</div>
                 <div style={{background:'rgba(0,0,0,0.3)',borderRadius:'6px',height:'8px',marginTop:8,overflow:'hidden'}}>
                   <div style={{height:'100%',background:'linear-gradient(90deg,#fbbf24,#f59e0b)',width:`${(state.tool.xp/state.tool.xpNeeded)*100}%`,transition:'width 0.3s'}}/>
+                </div>
+                <div style={{display:'flex',gap:8,marginTop:12}}>
+                  <button className="btn upgrade-btn" onClick={handlePurchaseXP(100)} disabled={state.money < Math.round(5000 * Math.pow(2, Math.max(0, state.tool.level-1)))}>
+                    Acheter 100 XP (${Math.round(5000 * Math.pow(2, Math.max(0, state.tool.level-1)))})
+                  </button>
+                  <button className="btn upgrade-btn" onClick={handlePurchaseXP(500)} disabled={state.money < Math.round(5000 * Math.pow(2, Math.max(0, state.tool.level-1))) * 5}>
+                    Acheter 500 XP (${Math.round(5000 * Math.pow(2, Math.max(0, state.tool.level-1))) * 5})
+                  </button>
                 </div>
               </div>
               <div className="muted">📈 Chaque niveau d'outil augmente votre production!</div>

@@ -1,10 +1,17 @@
 import React from 'react'
-import { triggerParticles } from '../game/useParticles'
+import { triggerParticles, spawnEmoji } from '../game/useParticles'
 
 export default function HUD({money,mined,marketPrice,tool,onSell}:{money:number,mined:number,marketPrice:number,tool:any,onSell:()=>void}){
   const handleSell = (e: React.MouseEvent<HTMLButtonElement>) => {
     const rect = e.currentTarget.getBoundingClientRect()
     triggerParticles(rect.left + rect.width / 2, rect.top + rect.height / 2, 'sell')
+    spawnEmoji(rect.left + rect.width / 2, rect.top + rect.height / 2, '💵', 12)
+    // small shake and gold glow on sell
+    const shell = document.querySelector('.game-shell')
+    if(shell){
+      shell.classList.add('shake','gold-glow')
+      setTimeout(()=>{ shell.classList.remove('shake'); shell.classList.remove('gold-glow') },700)
+    }
     onSell()
   }
 
