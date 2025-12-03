@@ -44,6 +44,22 @@ type Enterprise = {
   productionBonus: number // % bonus
 }
 
+type Tool = {
+  id: string
+  name: string
+  emoji: string
+  level: number
+  xp: number
+  xpNeeded: number
+  multiplier: number
+}
+
+type Event = {
+  id: string
+  type: 'crash' | 'boom' | 'tax' | 'bonus'
+  trigger: number // tick when it happened
+}
+
 export type GameState = {
   money: number
   mined: number
@@ -54,6 +70,14 @@ export type GameState = {
   skills: Skill[]
   enterprises: Enterprise[]
   totalProduction: number // cached value
+  tool: Tool
+  autoSellLevel: number
+  totalTaxesPaid: number
+  prestige: number
+  prestigeResets: number
+  priceHistory: number[]
+  lastEvent: Event | null
+  autoSellPrice: number // threshold price to auto-sell
 }
 
 const STORAGE_KEY = 'zycoon_state_v1'
@@ -62,9 +86,9 @@ function rand(min:number, max:number){return Math.random()*(max-min)+min}
 
 function defaultMines():Mine[]{
   return [
-    { id: 'm1', name: 'Mine de Surface', level:1, baseProduction: 0.8, unlockCost: 0, unlocked:true },
-    { id: 'm2', name: 'Mine Souterraine', level:1, baseProduction: 2, unlockCost: 200, unlocked:false },
-    { id: 'm3', name: 'Gisement Rare', level:1, baseProduction: 6, unlockCost: 1200, unlocked:false }
+    { id: 'm1', name: 'Mine de Surface', level:1, baseProduction: 0.5, unlockCost: 0, unlocked:true },
+    { id: 'm2', name: 'Mine Souterraine', level:1, baseProduction: 1.5, unlockCost: 8000, unlocked:false },
+    { id: 'm3', name: 'Gisement Rare', level:1, baseProduction: 5, unlockCost: 50000, unlocked:false }
   ]
 }
 
@@ -84,6 +108,18 @@ function defaultEnterprises():Enterprise[]{
   ]
 }
 
+function defaultTool():Tool{
+  return { id: 't1', name: 'Pelle', emoji: '🪓', level: 1, xp: 0, xpNeeded: 100, multiplier: 1 }
+}
+
+const TOOLS = [
+  { id: 't1', name: 'Pelle', emoji: '🪓', multiplier: 1 },
+  { id: 't2', name: 'Pioche', emoji: '⛏️', multiplier: 1.5 },
+  { id: 't3', name: 'Marteau-Piqueur', emoji: '🔨', multiplier: 2.2 },
+  { id: 't4', name: 'Foreur', emoji: '🔩', multiplier: 3.5 },
+  { id: 't5', name: 'Excavatrice', emoji: '🚜', multiplier: 5 }
+]
+
 export function useGame(){
   const [state, setState] = useState<GameState>(()=>{
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -94,19 +130,35 @@ export function useGame(){
         ...loaded,
         skills: loaded.skills || defaultSkills(),
         enterprises: loaded.enterprises || defaultEnterprises(),
-        totalProduction: loaded.totalProduction || 0
+        totalProduction: loaded.totalProduction || 0,
+        tool: loaded.tool || defaultTool(),
+        autoSellLevel: loaded.autoSellLevel || 0,
+        totalTaxesPaid: loaded.totalTaxesPaid || 0,
+        prestige: loaded.prestige || 0,
+        prestigeResets: loaded.prestigeResets || 0,
+        priceHistory: loaded.priceHistory || [],
+        lastEvent: loaded.lastEvent || null,
+        autoSellPrice: loaded.autoSellPrice || 2
       }
     } catch { }
     return { 
-      money: 50, 
+      money: 10, 
       mined: 0, 
       miners: [], 
       mines: defaultMines(), 
       managers: [], 
-      marketPrice: 1 + Math.random()*0.5,
+      marketPrice: 1 + Math.random()*0.3,
       skills: defaultSkills(),
       enterprises: defaultEnterprises(),
-      totalProduction: 0
+      totalProduction: 0,
+      tool: defaultTool(),
+      autoSellLevel: 0,
+      totalTaxesPaid: 0,
+      prestige: 0,
+      prestigeResets: 0,
+      priceHistory: [],
+      lastEvent: null,
+      autoSellPrice: 2
     }
   })
 
@@ -118,7 +170,7 @@ export function useGame(){
         // Calculate total production with multipliers
         let minersProd = prev.miners.reduce((s,m)=>s + m.speed, 0)
         const skillMinerBonus = 1 + (prev.skills.find(s=>s.effect==='minerSpeed')?.level || 0) * 0.1
-        minersProd *= skillMinerBonus
+        minersProd *= skillMinerBonus * prev.tool.multiplier
 
         let minesProd = 0
         let moneyFromManagers = 0
@@ -166,12 +218,59 @@ export function useGame(){
         })
 
         const produced = minersProd + minesProd
-        const newMined = prev.mined + produced
-        const newMoney = moneyAcc + moneyFromManagers + produced * prev.marketPrice * 0.01
+        let newMined = prev.mined + produced
+        
+        // Add XP to tool
+        let tool = {...prev.tool, xp: prev.tool.xp + produced}
+        let lastEvent = prev.lastEvent
+        
+        // Check tool level up
+        if(tool.xp >= tool.xpNeeded){
+          const currentToolIdx = TOOLS.findIndex(t => t.id === tool.id)
+          if(currentToolIdx < TOOLS.length - 1){
+            const nextTool = TOOLS[currentToolIdx + 1]
+            tool = {
+              ...tool,
+              id: nextTool.id,
+              name: nextTool.name,
+              emoji: nextTool.emoji,
+              level: tool.level + 1,
+              xp: tool.xp - tool.xpNeeded,
+              xpNeeded: Math.round(tool.xpNeeded * 1.5),
+              multiplier: nextTool.multiplier
+            }
+            lastEvent = { id: Date.now().toString(), type: 'boom', trigger: tickRef.current }
+          }
+        }
 
-        let p = prev.marketPrice + Math.sin(Date.now()/8000 + tickRef.current)*0.03 + rand(-0.02,0.03)
-        p = Math.max(0.05, p)
-        p = p + (1 - p) * 0.001
+        // Auto-sell if enabled and price is high
+        let autoSoldMoney = 0
+        if(prev.autoSellLevel > 0 && newMined > 0 && prev.marketPrice >= prev.autoSellPrice){
+          const amountToSell = Math.min(newMined, Math.floor(prev.autoSellLevel * 50))
+          autoSoldMoney = amountToSell * prev.marketPrice
+          newMined -= amountToSell
+        }
+
+        // Apply taxes (5% on money gained)
+        const taxAmount = (produced * prev.marketPrice * 0.01 + autoSoldMoney + moneyFromManagers) * 0.05
+        let newMoney = moneyAcc + moneyFromManagers + produced * prev.marketPrice * 0.01 + autoSoldMoney - taxAmount
+
+        // Dynamic price with crashes
+        let p = prev.marketPrice
+        const priceChange = Math.sin(Date.now()/8000 + tickRef.current)*0.025 + rand(-0.015, 0.025)
+        
+        // 2% chance of market crash
+        if(Math.random() < 0.02 && tickRef.current % 10 === 0){
+          p *= 0.7 // 30% crash
+          lastEvent = { id: Date.now().toString(), type: 'crash', trigger: tickRef.current }
+        } else if(Math.random() < 0.01 && tickRef.current % 15 === 0){
+          p *= 1.4 // 40% boom
+          lastEvent = { id: Date.now().toString(), type: 'boom', trigger: tickRef.current }
+        } else {
+          p += priceChange
+        }
+        
+        p = Math.max(0.1, p)
 
         tickRef.current++
 
@@ -207,7 +306,19 @@ export function useGame(){
           }
         }
 
-        const next:GameState = {...prev, mined: Number(newMined.toFixed(3)), money: Number(newMoney.toFixed(2)), marketPrice: Number(p.toFixed(3)), managers, mines, miners, totalProduction: produced}
+        const next:GameState = {
+          ...prev, 
+          mined: Number(newMined.toFixed(3)), 
+          money: Number(newMoney.toFixed(2)), 
+          marketPrice: Number(p.toFixed(3)), 
+          managers, 
+          mines, 
+          miners, 
+          totalProduction: produced,
+          tool,
+          totalTaxesPaid: prev.totalTaxesPaid + taxAmount,
+          lastEvent
+        }
         try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(next)) }catch{}
         return next
       })
@@ -313,5 +424,17 @@ export function useGame(){
     })
   }
 
-  return {state, hireMiner, fireMiner, upgradeMiner, upgradeMine, sellAll, unlockMine, hireManager, setManagerTarget, upgradeSkill, acquireEnterprise}
+  function upgradeAutoSell(level: number){
+    const cost = Math.round(500 * Math.pow(1.8, level))
+    setState(prev=>{
+      if(prev.money < cost) return prev
+      return {...prev, autoSellLevel: level + 1, money: Number((prev.money - cost).toFixed(2))}
+    })
+  }
+
+  function setAutoSellPrice(price: number){
+    setState(prev=> ({...prev, autoSellPrice: price}))
+  }
+
+  return {state, hireMiner, fireMiner, upgradeMiner, upgradeMine, sellAll, unlockMine, hireManager, setManagerTarget, upgradeSkill, acquireEnterprise, upgradeAutoSell, setAutoSellPrice}
 }

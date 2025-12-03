@@ -9,12 +9,14 @@ import CollapsibleMiners from './CollapsibleMiners'
 import SidePanel from './SidePanel'
 
 export default function Game(){
-  const { state, hireMiner, fireMiner, upgradeMiner, sellAll, unlockMine, hireManager, setManagerTarget, upgradeSkill, acquireEnterprise } = useGame()
+  const { state, hireMiner, fireMiner, upgradeMiner, sellAll, unlockMine, hireManager, setManagerTarget, upgradeSkill, acquireEnterprise, upgradeAutoSell, setAutoSellPrice } = useGame()
 
   return (
     <>
+    {state.lastEvent && state.lastEvent.type === 'crash' && <div className="event-notification crash">📉 CRASH! Prix en chute libre!</div>}
+    {state.lastEvent && state.lastEvent.type === 'boom' && <div className="event-notification boom">🚀 BOOM! Prix explosif!</div>}
     <div className="game-shell card">
-      <HUD money={state.money} mined={state.mined} marketPrice={state.marketPrice} onSell={sellAll} />
+      <HUD money={state.money} mined={state.mined} marketPrice={state.marketPrice} tool={state.tool} onSell={sellAll} />
 
       <CollapsibleMiners miners={state.miners} onHire={hireMiner} onUpgrade={(id)=>upgradeMiner(id)} onFire={(id)=>fireMiner(id)} />
 
@@ -51,7 +53,7 @@ export default function Game(){
       </div>
     </div>
 
-    <SidePanel skills={state.skills} enterprises={state.enterprises} state={state} onUpgradeSkill={(id)=>upgradeSkill(id)} onAcquireEnterprise={(id)=>acquireEnterprise(id)} />
+    <SidePanel skills={state.skills} enterprises={state.enterprises} state={state} onUpgradeSkill={(id)=>upgradeSkill(id)} onAcquireEnterprise={(id)=>acquireEnterprise(id)} onUpgradeAutoSell={upgradeAutoSell} onSetAutoSellPrice={setAutoSellPrice} />
     </>
   )
 }
