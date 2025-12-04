@@ -1,9 +1,10 @@
+import { PerksUI, ResearchUI, DailyBonusUI } from './ExtendedFeatures'
 import React, { useState } from 'react'
 import { triggerParticles, spawnEmoji } from '../game/useParticles'
 
-type TabType = 'skills' | 'enterprises' | 'stats' | 'tool' | 'autosell'
+type TabType = 'skills' | 'enterprises' | 'stats' | 'tool' | 'autosell' | 'perks' | 'research' | 'daily'
 
-export default function SidePanel({skills=[],enterprises=[],state,onUpgradeSkill,onAcquireEnterprise,onUpgradeAutoSell,onSetAutoSellPrice,onPurchaseToolXP}:{skills:any[],enterprises:any[],state:any,onUpgradeSkill:(id:string)=>void,onAcquireEnterprise:(id:string)=>void,onUpgradeAutoSell:(level:number)=>void,onSetAutoSellPrice:(price:number)=>void,onPurchaseToolXP:(amount?:number)=>void}){
+export default function SidePanel({skills=[],enterprises=[],state,onUpgradeSkill,onAcquireEnterprise,onUpgradeAutoSell,onSetAutoSellPrice,onPurchaseToolXP,onUnlockPerk,onUnlockResearch,onClaimDailyBonus}:{skills:any[],enterprises:any[],state:any,onUpgradeSkill:(id:string)=>void,onAcquireEnterprise:(id:string)=>void,onUpgradeAutoSell:(level:number)=>void,onSetAutoSellPrice:(price:number)=>void,onPurchaseToolXP:(amount?:number)=>void,onUnlockPerk?:(id:string)=>void,onUnlockResearch?:(id:string)=>void,onClaimDailyBonus?:()=>void}){
   const [tab, setTab] = useState<TabType>('skills')
   const [isOpen, setIsOpen] = useState(false)
 
@@ -43,6 +44,9 @@ export default function SidePanel({skills=[],enterprises=[],state,onUpgradeSkill
           <button className={`tab-btn ${tab==='enterprises'?'active':''}`} onClick={()=>setTab('enterprises')}>🏢 Sociétés</button>
           <button className={`tab-btn ${tab==='tool'?'active':''}`} onClick={()=>setTab('tool')}>🔧 Outils</button>
           <button className={`tab-btn ${tab==='autosell'?'active':''}`} onClick={()=>setTab('autosell')}>🤖 Vente Auto</button>
+          <button className={`tab-btn ${tab==='perks'?'active':''}`} onClick={()=>setTab('perks')}>⭐ Perks</button>
+          <button className={`tab-btn ${tab==='research'?'active':''}`} onClick={()=>setTab('research')}>🔬 Recherche</button>
+          <button className={`tab-btn ${tab==='daily'?'active':''}`} onClick={()=>setTab('daily')}>🎁 Bonus</button>
           <button className={`tab-btn ${tab==='stats'?'active':''}`} onClick={()=>setTab('stats')}>📊 Stats</button>
         </div>
 
@@ -134,6 +138,24 @@ export default function SidePanel({skills=[],enterprises=[],state,onUpgradeSkill
                   <button className="btn small-btn" onClick={()=>onSetAutoSellPrice(state.autoSellPrice + 0.1)}>+</button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {tab==='perks' && (
+            <div>
+              <PerksUI perks={state.perks||[]} state={state} onUnlockPerk={onUnlockPerk} />
+            </div>
+          )}
+
+          {tab==='research' && (
+            <div>
+              <ResearchUI research={state.research||[]} state={state} onUnlockResearch={onUnlockResearch} />
+            </div>
+          )}
+
+          {tab==='daily' && (
+            <div>
+              <DailyBonusUI state={state} onClaimDailyBonus={onClaimDailyBonus} />
             </div>
           )}
 

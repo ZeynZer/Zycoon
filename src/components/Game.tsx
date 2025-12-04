@@ -9,7 +9,7 @@ import CollapsibleMiners from './CollapsibleMiners'
 import SidePanel from './SidePanel'
 
 export default function Game(){
-  const { state, hireMiner, fireMiner, upgradeMiner, sellAll, unlockMine, hireManager, setManagerTarget, upgradeSkill, acquireEnterprise, upgradeAutoSell, setAutoSellPrice, purchaseToolXP } = useGame()
+  const { state, hireMiner, fireMiner, upgradeMiner, sellAll, unlockMine, hireManager, setManagerTarget, upgradeSkill, acquireEnterprise, upgradeAutoSell, setAutoSellPrice, purchaseToolXP, claimDailyBonus, unlockPerk, unlockResearch } = useGame()
 
   return (
     <>
@@ -53,7 +53,7 @@ export default function Game(){
       </div>
     </div>
 
-    <SidePanel skills={state.skills} enterprises={state.enterprises} state={state} onUpgradeSkill={(id)=>upgradeSkill(id)} onAcquireEnterprise={(id)=>acquireEnterprise(id)} onUpgradeAutoSell={upgradeAutoSell} onSetAutoSellPrice={setAutoSellPrice} onPurchaseToolXP={(amt?:number)=>purchaseToolXP(amt)} />
+    <SidePanel skills={state.skills} enterprises={state.enterprises} state={state} onUpgradeSkill={(id)=>upgradeSkill(id)} onAcquireEnterprise={(id)=>acquireEnterprise(id)} onUpgradeAutoSell={upgradeAutoSell} onSetAutoSellPrice={setAutoSellPrice} onPurchaseToolXP={(amt?:number)=>purchaseToolXP(amt)} onUnlockPerk={(id)=>unlockPerk(id)} onUnlockResearch={(id)=>unlockResearch(id)} onClaimDailyBonus={claimDailyBonus} />
     </>
   )
 }
