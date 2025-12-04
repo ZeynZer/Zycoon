@@ -244,10 +244,13 @@ export function useGame(){
   useEffect(()=>{
     const id = setInterval(()=>{
       setState(prev=>{
-        // Calculate total production with multipliers
+        // Calculate total production with multipliers (including perks & research)
         let minersProd = prev.miners.reduce((s,m)=>s + m.speed, 0)
         const skillMinerBonus = 1 + (prev.skills.find(s=>s.effect==='minerSpeed')?.level || 0) * 0.1
-        minersProd *= skillMinerBonus * prev.tool.multiplier
+        
+        // Perk bonus: boost speed perk (+10% per level)
+        const speedPerkBonus = 1 + (prev.perks.find(p=>p.id==='p3')?.level || 0) * 0.1
+        minersProd *= skillMinerBonus * speedPerkBonus * prev.tool.multiplier
 
         let minesProd = 0
         let moneyFromManagers = 0
@@ -256,10 +259,16 @@ export function useGame(){
 
         const skillMineBonus = 1 + (prev.skills.find(s=>s.effect==='mineOutput')?.level || 0) * 0.05
         const enterpriseBonus = prev.enterprises.filter(e=>e.owned).reduce((s,e)=>s + e.productionBonus, 0)
+        
+        // Research bonus: advanced mining tech (+20%)
+        const researchBonus = prev.researchItems.find(r=>r.id==='r1' && r.unlocked) ? 1.2 : 1
+        
+        // Perk bonus: money bonus perk (+2% per level)
+        const moneyPerkBonus = 1 + (prev.perks.find(p=>p.id==='p4')?.level || 0) * 0.02
 
         for(const mine of prev.mines){
           if(!mine.unlocked) continue
-          let prod = mine.baseProduction * Math.pow(1.25, mine.level-1) * skillMineBonus * (1 + enterpriseBonus)
+          let prod = mine.baseProduction * Math.pow(1.25, mine.level-1) * skillMineBonus * (1 + enterpriseBonus) * researchBonus * moneyPerkBonus
           const mgr = managers.find(x=> x.targetMineId === mine.id && x.type === 'collector')
           if(mgr){
             moneyFromManagers += prod * prev.marketPrice * 0.02
@@ -330,7 +339,11 @@ export function useGame(){
 
         // Apply taxes (5% on money gained)
         const taxAmount = (produced * prev.marketPrice * 0.01 + autoSoldMoney + moneyFromManagers) * 0.05
-        let newMoney = moneyAcc + moneyFromManagers + produced * prev.marketPrice * 0.01 + autoSoldMoney - taxAmount
+        
+        // Add passive income from perk (0.5% per level)
+        const passiveIncome = prev.money * ((prev.perks.find(p=>p.id==='p1')?.level || 0) * 0.005) / 10 // divided by 10 to make it 1/10 per tick
+        
+        let newMoney = moneyAcc + moneyFromManagers + produced * prev.marketPrice * 0.01 + autoSoldMoney + passiveIncome - taxAmount
 
         // Dynamic price with crashes (more difficult market)
         let p = prev.marketPrice
@@ -445,7 +458,20 @@ export function useGame(){
 
   function sellAll(){
     setState(prev=>{
-      const revenue = prev.mined * prev.marketPrice
+      let minedAmount = prev.mined
+      
+      // Apply ore doubler perk (5% per level chance to double mined amount)
+      const doubleChance = ((prev.perks.find(p=>p.id==='p5')?.level || 0) * 0.05)
+      if(Math.random() < doubleChance){
+        minedAmount *= 2
+      }
+      
+      // Apply critical chance perk (5% per level of critical hit = 2x multiplier)
+      const critChance = ((prev.perks.find(p=>p.id==='p2')?.level || 0) * 0.05)
+      const isCrit = Math.random() < critChance
+      const critMultiplier = isCrit ? 2 : 1
+      
+      const revenue = minedAmount * prev.marketPrice * critMultiplier
       return {...prev, money: Number((prev.money+revenue).toFixed(2)), mined: 0}
     })
   }
@@ -529,17 +555,21 @@ export function useGame(){
       const now = new Date().getDate()
       if(prev.dailyBonusDay === now) return prev // already claimed today
       const newStreak = prev.dailyBonusDay === now - 1 ? prev.dailyStreaks + 1 : 1
-      const bonusAmount = prev.dailyBonusAmount * (1 + newStreak * 0.1)
-      return {...prev, money: Number((prev.money + bonusAmount).toFixed(2)), dailyBonusDay: now, dailyStreaks: newStreak}
+      const baseBonusAmount = Math.max(1000, prev.totalMoneySold * 0.01) // 1% of total money sold, minimum 1000
+      const bonusAmount = baseBonusAmount * (1 + newStreak * 0.1) // 10% boost per streak
+      return {...prev, money: Number((prev.money + bonusAmount).toFixed(2)), dailyBonusDay: now, dailyStreaks: newStreak, dailyBonusAmount: bonusAmount}
     })
   }
 
   // NEW FEATURE: Unlock perk
   function unlockPerk(perkId: string){
     setState(prev=>{
-      const cost = 5000 * Math.pow(1.5, prev.perks.filter(p=>p.unlocked).length)
+      const perkData = {p1: {cost: 5000}, p2: {cost: 8000}, p3: {cost: 6000}, p4: {cost: 12000}, p5: {cost: 15000}}[perkId] as any
+      const existingPerk = prev.perks.find(p=>p.id===perkId)
+      const baseCost = perkData?.cost || 5000
+      const cost = Math.round(baseCost * Math.pow(1.5, existingPerk?.level || 0))
       if(prev.money < cost) return prev
-      const newPerks = prev.perks.some(p=>p.id===perkId) ? prev.perks.map(p=> p.id===perkId ? {...p, level: p.level+1} : p) : [...prev.perks, {id: perkId, level: 1, unlocked: true}]
+      const newPerks = existingPerk ? prev.perks.map(p=> p.id===perkId ? {...p, level: p.level+1} : p) : [...prev.perks, {id: perkId, level: 1, unlocked: true}]
       return {...prev, money: Number((prev.money - cost).toFixed(2)), perks: newPerks}
     })
   }
@@ -547,7 +577,9 @@ export function useGame(){
   // NEW FEATURE: Unlock research
   function unlockResearch(researchId: string){
     setState(prev=>{
-      const cost = 50000 * Math.pow(2, prev.researchItems.filter(r=>r.unlocked).length)
+      if(prev.researchItems.some(r=>r.id===researchId)) return prev // already unlocked
+      const researchData = {r1: {cost: 50000}, r2: {cost: 80000}, r3: {cost: 120000}, r4: {cost: 200000}, r5: {cost: 500000}}[researchId] as any
+      const cost = researchData?.cost || 50000
       if(prev.money < cost) return prev
       const newResearch = [...prev.researchItems, {id: researchId, unlocked: true}]
       return {...prev, money: Number((prev.money - cost).toFixed(2)), researchItems: newResearch}
