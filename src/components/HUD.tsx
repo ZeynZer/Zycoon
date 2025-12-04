@@ -7,12 +7,7 @@ export default function HUD({money,mined,marketPrice,tool,onSell}:{money:number,
     const rect = e.currentTarget.getBoundingClientRect()
     triggerParticles(rect.left + rect.width / 2, rect.top + rect.height / 2, 'sell')
     spawnEmoji(rect.left + rect.width / 2, rect.top + rect.height / 2, '💵', 8)
-    // add gentle pulse on sell instead of problematic shake
-    const shell = document.querySelector('.game-shell')
-    if(shell){
-      shell.classList.add('sell-pulse')
-      setTimeout(()=>{ shell.classList.remove('sell-pulse') },600)
-    }
+    // no animation on game-shell to avoid layout shift
     onSell()
   }
 
