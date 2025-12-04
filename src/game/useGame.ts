@@ -78,6 +78,31 @@ export type GameState = {
   priceHistory: number[]
   lastEvent: Event | null
   autoSellPrice: number // threshold price to auto-sell
+  // NEW FEATURES (20+)
+  dailyBonusDay: number
+  dailyStreaks: number
+  dailyBonusAmount: number
+  passiveIncomePerSec: number
+  critChance: number
+  critMultiplier: number
+  oreDoubleChance: number
+  perks: { id: string; level: number; unlocked: boolean }[]
+  researchItems: { id: string; unlocked: boolean }[]
+  achievements: { id: string; unlocked: boolean }[]
+  totalMinersHired: number
+  totalMoneySold: number
+  maxMoneyReached: number
+  millennialAchievement: number // how many M milestones passed (1M, 10M, 100M, 1B, etc)
+  weeklyMultiplier: number
+  weeklyBonus: boolean
+  seasonalBonus: number
+  prestigeMultiplier: number
+  autoUpgradeEnabled: boolean
+  autoUpgradeLevel: number
+  offlineEarnings: number
+  lastSessionTime: number
+  totalPlayTime: number
+  specialOffers: { id: string; active: boolean; discount: number }[]
 }
 
 const STORAGE_KEY = 'zycoon_state_v1'
@@ -86,9 +111,11 @@ function rand(min:number, max:number){return Math.random()*(max-min)+min}
 
 function defaultMines():Mine[]{
   return [
-    { id: 'm1', name: 'Mine de Surface', level:1, baseProduction: 0.3, unlockCost: 0, unlocked:true },
-    { id: 'm2', name: 'Mine Souterraine', level:1, baseProduction: 1.0, unlockCost: 20000, unlocked:false },
-    { id: 'm3', name: 'Gisement Rare', level:1, baseProduction: 3.0, unlockCost: 200000, unlocked:false }
+    { id: 'm1', name: 'Mine de Surface', level:1, baseProduction: 0.15, unlockCost: 0, unlocked:true },
+    { id: 'm2', name: 'Mine Souterraine', level:1, baseProduction: 0.5, unlockCost: 100000, unlocked:false },
+    { id: 'm3', name: 'Gisement Rare', level:1, baseProduction: 2.0, unlockCost: 5000000, unlocked:false },
+    { id: 'm4', name: 'Cœur Cristallin', level:1, baseProduction: 8.0, unlockCost: 100000000, unlocked:false },
+    { id: 'm5', name: 'Sanctuaire Ancien', level:1, baseProduction: 50.0, unlockCost: 5000000000, unlocked:false }
   ]
 }
 
@@ -109,7 +136,7 @@ function defaultEnterprises():Enterprise[]{
 }
 
 function defaultTool():Tool{
-  return { id: 't1', name: 'Pelle', emoji: '🪓', level: 1, xp: 0, xpNeeded: 300, multiplier: 1 }
+  return { id: 't1', name: 'Pelle', emoji: '🪓', level: 1, xp: 0, xpNeeded: 500, multiplier: 1 }
 }
 
 const TOOLS = [
@@ -138,7 +165,32 @@ export function useGame(){
         prestigeResets: loaded.prestigeResets || 0,
         priceHistory: loaded.priceHistory || [],
         lastEvent: loaded.lastEvent || null,
-        autoSellPrice: loaded.autoSellPrice || 2
+        autoSellPrice: loaded.autoSellPrice || 2,
+        // NEW FEATURES defaults
+        dailyBonusDay: loaded.dailyBonusDay || 0,
+        dailyStreaks: loaded.dailyStreaks || 0,
+        dailyBonusAmount: loaded.dailyBonusAmount || 1000,
+        passiveIncomePerSec: loaded.passiveIncomePerSec || 0,
+        critChance: loaded.critChance || 0.05,
+        critMultiplier: loaded.critMultiplier || 2,
+        oreDoubleChance: loaded.oreDoubleChance || 0,
+        perks: loaded.perks || [],
+        researchItems: loaded.researchItems || [],
+        achievements: loaded.achievements || [],
+        totalMinersHired: loaded.totalMinersHired || 0,
+        totalMoneySold: loaded.totalMoneySold || 0,
+        maxMoneyReached: loaded.maxMoneyReached || 0,
+        millennialAchievement: loaded.millennialAchievement || 0,
+        weeklyMultiplier: loaded.weeklyMultiplier || 1,
+        weeklyBonus: loaded.weeklyBonus || false,
+        seasonalBonus: loaded.seasonalBonus || 0,
+        prestigeMultiplier: loaded.prestigeMultiplier || 1,
+        autoUpgradeEnabled: loaded.autoUpgradeEnabled || false,
+        autoUpgradeLevel: loaded.autoUpgradeLevel || 0,
+        offlineEarnings: loaded.offlineEarnings || 0,
+        lastSessionTime: loaded.lastSessionTime || Date.now(),
+        totalPlayTime: loaded.totalPlayTime || 0,
+        specialOffers: loaded.specialOffers || []
       }
     } catch { }
     return { 
@@ -158,7 +210,32 @@ export function useGame(){
       prestigeResets: 0,
       priceHistory: [],
       lastEvent: null,
-      autoSellPrice: 2
+      autoSellPrice: 2,
+      // NEW FEATURES
+      dailyBonusDay: 0,
+      dailyStreaks: 0,
+      dailyBonusAmount: 1000,
+      passiveIncomePerSec: 0,
+      critChance: 0.05,
+      critMultiplier: 2,
+      oreDoubleChance: 0,
+      perks: [],
+      researchItems: [],
+      achievements: [],
+      totalMinersHired: 0,
+      totalMoneySold: 0,
+      maxMoneyReached: 0,
+      millennialAchievement: 0,
+      weeklyMultiplier: 1,
+      weeklyBonus: false,
+      seasonalBonus: 0,
+      prestigeMultiplier: 1,
+      autoUpgradeEnabled: false,
+      autoUpgradeLevel: 0,
+      offlineEarnings: 0,
+      lastSessionTime: Date.now(),
+      totalPlayTime: 0,
+      specialOffers: []
     }
   })
 
@@ -255,22 +332,22 @@ export function useGame(){
         const taxAmount = (produced * prev.marketPrice * 0.01 + autoSoldMoney + moneyFromManagers) * 0.05
         let newMoney = moneyAcc + moneyFromManagers + produced * prev.marketPrice * 0.01 + autoSoldMoney - taxAmount
 
-        // Dynamic price with crashes
+        // Dynamic price with crashes (more difficult market)
         let p = prev.marketPrice
         const priceChange = Math.sin(Date.now()/8000 + tickRef.current)*0.025 + rand(-0.015, 0.025)
         
-        // ~3% chance of market crash
-        if(Math.random() < 0.03 && tickRef.current % 10 === 0){
-          p *= 0.7 // 30% crash
+        // 5% chance of severe market crash (more punishing)
+        if(Math.random() < 0.05 && tickRef.current % 8 === 0){
+          p *= 0.5 // 50% crash
           lastEvent = { id: Date.now().toString(), type: 'crash', trigger: tickRef.current }
-        } else if(Math.random() < 0.008 && tickRef.current % 15 === 0){
-          p *= 1.4 // 40% boom
+        } else if(Math.random() < 0.04 && tickRef.current % 12 === 0){
+          p *= 1.6 // 60% boom (rarer)
           lastEvent = { id: Date.now().toString(), type: 'boom', trigger: tickRef.current }
         } else {
-          p += priceChange
+          p += priceChange * 0.8
         }
         
-        p = Math.max(0.1, p)
+        p = Math.max(0.05, p)
 
         tickRef.current++
 
@@ -446,5 +523,47 @@ export function useGame(){
     })
   }
 
-  return {state, hireMiner, fireMiner, upgradeMiner, upgradeMine, sellAll, unlockMine, hireManager, setManagerTarget, upgradeSkill, acquireEnterprise, upgradeAutoSell, setAutoSellPrice, purchaseToolXP}
+  // NEW FEATURE: Claim daily bonus
+  function claimDailyBonus(){
+    setState(prev=>{
+      const now = new Date().getDate()
+      if(prev.dailyBonusDay === now) return prev // already claimed today
+      const newStreak = prev.dailyBonusDay === now - 1 ? prev.dailyStreaks + 1 : 1
+      const bonusAmount = prev.dailyBonusAmount * (1 + newStreak * 0.1)
+      return {...prev, money: Number((prev.money + bonusAmount).toFixed(2)), dailyBonusDay: now, dailyStreaks: newStreak}
+    })
+  }
+
+  // NEW FEATURE: Unlock perk
+  function unlockPerk(perkId: string){
+    setState(prev=>{
+      const cost = 5000 * Math.pow(1.5, prev.perks.filter(p=>p.unlocked).length)
+      if(prev.money < cost) return prev
+      const newPerks = prev.perks.some(p=>p.id===perkId) ? prev.perks.map(p=> p.id===perkId ? {...p, level: p.level+1} : p) : [...prev.perks, {id: perkId, level: 1, unlocked: true}]
+      return {...prev, money: Number((prev.money - cost).toFixed(2)), perks: newPerks}
+    })
+  }
+
+  // NEW FEATURE: Unlock research
+  function unlockResearch(researchId: string){
+    setState(prev=>{
+      const cost = 50000 * Math.pow(2, prev.researchItems.filter(r=>r.unlocked).length)
+      if(prev.money < cost) return prev
+      const newResearch = [...prev.researchItems, {id: researchId, unlocked: true}]
+      return {...prev, money: Number((prev.money - cost).toFixed(2)), researchItems: newResearch}
+    })
+  }
+
+  // NEW FEATURE: Enable auto-upgrade
+  function setAutoUpgrade(enabled: boolean, level: number){
+    setState(prev=> ({...prev, autoUpgradeEnabled: enabled, autoUpgradeLevel: level}))
+  }
+
+  // NEW FEATURE: Track total miners hired
+  function hireMinerTracked(){
+    hireMiner()
+    setState(prev=> ({...prev, totalMinersHired: prev.totalMinersHired + 1}))
+  }
+
+  return {state, hireMiner: hireMinerTracked, fireMiner, upgradeMiner, upgradeMine, sellAll, unlockMine, hireManager, setManagerTarget, upgradeSkill, acquireEnterprise, upgradeAutoSell, setAutoSellPrice, purchaseToolXP, claimDailyBonus, unlockPerk, unlockResearch, setAutoUpgrade}
 }

@@ -1,5 +1,6 @@
 import React from 'react'
 import { triggerParticles, spawnEmoji } from '../game/useParticles'
+import { formatNumber } from '../game/formatters'
 
 export default function HUD({money,mined,marketPrice,tool,onSell}:{money:number,mined:number,marketPrice:number,tool:any,onSell:()=>void}){
   const handleSell = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -19,11 +20,11 @@ export default function HUD({money,mined,marketPrice,tool,onSell}:{money:number,
     <div className="hud card">
       <div>
         <div className="muted">Argent</div>
-        <div style={{fontSize:18,fontWeight:700}}>${money.toFixed(2)}</div>
+        <div style={{fontSize:18,fontWeight:700}}>${formatNumber(money)}</div>
       </div>
       <div>
         <div className="muted">Stock</div>
-        <div style={{fontSize:18,fontWeight:700}}>{Math.floor(mined)} unités</div>
+        <div style={{fontSize:18,fontWeight:700}}>{formatNumber(Math.floor(mined))} unités</div>
       </div>
       <div>
         <div className="muted">Outil</div>
@@ -31,7 +32,7 @@ export default function HUD({money,mined,marketPrice,tool,onSell}:{money:number,
       </div>
       <div style={{display:'flex',flexDirection:'column',gap:6,alignItems:'flex-end'}}>
         <button className="btn sell-btn" onClick={handleSell}>Vendre tout</button>
-        <div className="muted" style={{fontSize:12}}>+${(mined * marketPrice).toFixed(2)}</div>
+        <div className="muted" style={{fontSize:12}}>+${formatNumber(mined * marketPrice)}</div>
       </div>
     </div>
   )
