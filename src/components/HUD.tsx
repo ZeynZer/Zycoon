@@ -5,12 +5,12 @@ export default function HUD({money,mined,marketPrice,tool,onSell}:{money:number,
   const handleSell = (e: React.MouseEvent<HTMLButtonElement>) => {
     const rect = e.currentTarget.getBoundingClientRect()
     triggerParticles(rect.left + rect.width / 2, rect.top + rect.height / 2, 'sell')
-    spawnEmoji(rect.left + rect.width / 2, rect.top + rect.height / 2, '💵', 12)
-    // small shake and gold glow on sell
+    spawnEmoji(rect.left + rect.width / 2, rect.top + rect.height / 2, '💵', 8)
+    // add gentle pulse on sell instead of problematic shake
     const shell = document.querySelector('.game-shell')
     if(shell){
-      shell.classList.add('shake','gold-glow')
-      setTimeout(()=>{ shell.classList.remove('shake'); shell.classList.remove('gold-glow') },700)
+      shell.classList.add('sell-pulse')
+      setTimeout(()=>{ shell.classList.remove('sell-pulse') },600)
     }
     onSell()
   }

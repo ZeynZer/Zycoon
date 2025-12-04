@@ -88,7 +88,7 @@ export default function ParticleSystem() {
         vy: Math.sin(angle) * (speed + Math.random() * 2) - 1,
         life: 60 + Math.random() * 40,
         maxLife: 100,
-        size: isEmoji ? (8 + Math.random() * 8) : (2 + Math.random() * 3),
+        size: isEmoji ? (4 + Math.random() * 4) : (2 + Math.random() * 3),
         color: colors[Math.floor(Math.random() * colors.length)],
         isEmoji: isEmoji,
         emoji: emoji || (isEmoji ? '💵' : undefined)
