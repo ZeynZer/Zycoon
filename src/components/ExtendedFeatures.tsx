@@ -1,5 +1,6 @@
 import React from 'react'
 import { triggerParticles } from '../game/useParticles'
+import { formatNumberShort } from '../game/formatters'
 
 const PERKS_DATA = [
   { id: 'p1', name: 'Revenus Passifs', desc: '+0.5% revenu/sec', cost: 5000, maxLevel: 10 },
@@ -35,7 +36,7 @@ export function PerksUI({perks=[], state, onUnlockPerk}: {perks: any[], state: a
                 <div style={{marginTop:'6px',color:'#34d399',fontSize:'11px',fontWeight:700}}>✓ Max</div>
               ) : (
                 <button className="btn upgrade-btn" style={{width:'100%',marginTop:'6px',padding:'4px',fontSize:'10px'}} onClick={(e)=>{triggerParticles(e.currentTarget.getBoundingClientRect().left,e.currentTarget.getBoundingClientRect().top,'upgrade'); onUnlockPerk?.(perk.id)}} disabled={state.money < cost}>
-                  ${cost}
+                  ${formatNumberShort(cost)}
                 </button>
               )}
             </div>
@@ -60,7 +61,7 @@ export function ResearchUI({research=[], state, onUnlockResearch}: {research: an
                 <div style={{marginTop:'8px',color:'#34d399',fontWeight:700}}>✓ Déverrouillée</div>
               ) : (
                 <button className="btn acquire-btn" onClick={(e)=>{triggerParticles(e.currentTarget.getBoundingClientRect().left,e.currentTarget.getBoundingClientRect().top,'mine'); onUnlockResearch?.(item.id)}} disabled={state.money < item.cost} style={{width:'100%',marginTop:'8px'}}>
-                  Déverrouiller ${item.cost}
+                  Déverrouiller ${formatNumberShort(item.cost)}
                 </button>
               )}
             </div>
@@ -81,7 +82,7 @@ export function DailyBonusUI({state, onClaimDailyBonus}: {state: any, onClaimDai
       <div style={{fontWeight:700,fontSize:'18px',marginBottom:'8px'}}>Bonus Quotidien</div>
       <div style={{background:'rgba(52,211,153,0.2)',borderRadius:'8px',padding:'12px',marginBottom:'16px'}}>
         <div className="muted">Montant disponible:</div>
-        <div style={{fontSize:'24px',fontWeight:700,color:'#34d399',marginTop:'4px'}}>${state.dailyBonusAmount.toFixed(0)}</div>
+        <div style={{fontSize:'24px',fontWeight:700,color:'#34d399',marginTop:'4px'}}>${formatNumberShort(state.dailyBonusAmount || 1000)}</div>
       </div>
       <div style={{background:'rgba(59,130,246,0.2)',borderRadius:'8px',padding:'12px',marginBottom:'16px'}}>
         <div className="muted">Streak actuelle:</div>

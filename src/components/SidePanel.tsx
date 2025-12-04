@@ -1,6 +1,7 @@
 import { PerksUI, ResearchUI, DailyBonusUI } from './ExtendedFeatures'
 import React, { useState } from 'react'
 import { triggerParticles, spawnEmoji } from '../game/useParticles'
+import { formatNumber, formatNumberShort } from '../game/formatters'
 
 type TabType = 'skills' | 'enterprises' | 'stats' | 'tool' | 'autosell' | 'perks' | 'research' | 'daily'
 
@@ -62,7 +63,7 @@ export default function SidePanel({skills=[],enterprises=[],state,onUpgradeSkill
                       <div style={{marginTop:6}} className="muted">Lvl {s.level}/{s.maxLevel}</div>
                     </div>
                     <button className="btn upgrade-btn" onClick={handleSkillUpgrade(s.id)} disabled={s.level>=s.maxLevel || state.money < Math.round(s.cost * Math.pow(1.5, s.level))}>
-                      ${Math.round(s.cost * Math.pow(1.5, s.level))}
+                      ${formatNumberShort(Math.round(s.cost * Math.pow(1.5, s.level)))}
                     </button>
                   </div>
                 ))}
@@ -82,7 +83,7 @@ export default function SidePanel({skills=[],enterprises=[],state,onUpgradeSkill
                       <div style={{marginTop:8,color:'#34d399',fontWeight:700}}>✓ Acquise</div>
                     ) : (
                       <button className="btn acquire-btn" onClick={handleAcquire(e.id)} disabled={state.money < e.cost}>
-                        Acquérir ${e.cost}
+                        Acquérir ${formatNumberShort(e.cost)}
                       </button>
                     )}
                   </div>
@@ -103,10 +104,10 @@ export default function SidePanel({skills=[],enterprises=[],state,onUpgradeSkill
                 </div>
                 <div style={{display:'flex',gap:8,marginTop:12}}>
                   <button className="btn upgrade-btn" onClick={handlePurchaseXP(100)} disabled={state.money < Math.round(5000 * Math.pow(2, Math.max(0, state.tool.level-1)))}>
-                    Acheter 100 XP (${Math.round(5000 * Math.pow(2, Math.max(0, state.tool.level-1)))})
+                    Acheter 100 XP (${formatNumberShort(Math.round(5000 * Math.pow(2, Math.max(0, state.tool.level-1))))})
                   </button>
                   <button className="btn upgrade-btn" onClick={handlePurchaseXP(500)} disabled={state.money < Math.round(5000 * Math.pow(2, Math.max(0, state.tool.level-1))) * 5}>
-                    Acheter 500 XP (${Math.round(5000 * Math.pow(2, Math.max(0, state.tool.level-1))) * 5})
+                    Acheter 500 XP (${formatNumberShort(Math.round(5000 * Math.pow(2, Math.max(0, state.tool.level-1))) * 5)})
                   </button>
                 </div>
               </div>
@@ -125,14 +126,14 @@ export default function SidePanel({skills=[],enterprises=[],state,onUpgradeSkill
                   onClick={()=>onUpgradeAutoSell(state.autoSellLevel)}
                   disabled={state.money < Math.round(500 * Math.pow(1.8, state.autoSellLevel))}
                 >
-                  Upgrade ${Math.round(500 * Math.pow(1.8, state.autoSellLevel))}
+                  Upgrade ${formatNumberShort(Math.round(500 * Math.pow(1.8, state.autoSellLevel)))}
                 </button>
                 <div className="muted" style={{fontSize:12}}>Vend {state.autoSellLevel * 50} unités/tick au prix fixé</div>
               </div>
 
               <div style={{background:'rgba(52,211,153,0.1)',padding:'12px',borderRadius:'12px'}}>
                 <div style={{fontWeight:700,marginBottom:8}}>💹 Prix de vente auto</div>
-                <div className="muted" style={{marginBottom:8}}>Actuellement: ${state.autoSellPrice.toFixed(2)}</div>
+                <div className="muted" style={{marginBottom:8}}>Actuellement: ${state.autoSellPrice.toFixed(3)}</div>
                 <div style={{display:'flex',gap:6}}>
                   <button className="btn small-btn" onClick={()=>onSetAutoSellPrice(Math.max(0.1, state.autoSellPrice - 0.1))}>-</button>
                   <button className="btn small-btn" onClick={()=>onSetAutoSellPrice(state.autoSellPrice + 0.1)}>+</button>
@@ -163,15 +164,15 @@ export default function SidePanel({skills=[],enterprises=[],state,onUpgradeSkill
             <div className="stats-dashboard">
               <div className="stat-box">
                 <div className="stat-label">💰 Argent</div>
-                <div className="stat-value">${state.money.toFixed(2)}</div>
+                <div className="stat-value">${formatNumber(state.money)}</div>
               </div>
               <div className="stat-box">
                 <div className="stat-label">📦 Stock</div>
-                <div className="stat-value">{Math.floor(state.mined)}</div>
+                <div className="stat-value">{formatNumber(Math.floor(state.mined))}</div>
               </div>
               <div className="stat-box">
                 <div className="stat-label">📈 Production/s</div>
-                <div className="stat-value">{state.totalProduction.toFixed(2)}</div>
+                <div className="stat-value">{formatNumber(state.totalProduction)}</div>
               </div>
               <div className="stat-box">
                 <div className="stat-label">💵 Prix Marché</div>
@@ -187,7 +188,7 @@ export default function SidePanel({skills=[],enterprises=[],state,onUpgradeSkill
               </div>
               <div className="stat-box">
                 <div className="stat-label">⛰️ Mines</div>
-                <div className="stat-value">{state.mines && state.mines.filter((m:any)=>m.unlocked).length || 0}/3</div>
+                <div className="stat-value">{state.mines && state.mines.filter((m:any)=>m.unlocked).length || 0}/5</div>
               </div>
               <div className="stat-box">
                 <div className="stat-label">🏢 Sociétés</div>
@@ -195,7 +196,7 @@ export default function SidePanel({skills=[],enterprises=[],state,onUpgradeSkill
               </div>
               <div className="stat-box">
                 <div className="stat-label">💸 Taxes payées</div>
-                <div className="stat-value">${state.totalTaxesPaid.toFixed(2)}</div>
+                <div className="stat-value">${formatNumber(state.totalTaxesPaid)}</div>
               </div>
               <div className="stat-box">
                 <div className="stat-label">⭐ Prestige</div>
