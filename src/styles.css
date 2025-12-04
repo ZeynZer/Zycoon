@@ -5,8 +5,8 @@
   --gold:#fbbf24;
   --muted:#94a3b8;
 }
-html,body,#root{height:100%;width:100%;margin:0;padding:0;}
-body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;background:linear-gradient(180deg,var(--bg),#071023);color:#e6eef8;}
+html,body,#root{height:100%;width:100%;margin:0;padding:0;overflow-x:hidden;}
+body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;background:linear-gradient(180deg,var(--bg),#071023);color:#e6eef8;overflow-x:hidden;}
 .app-root{min-height:100vh;width:100%;display:flex;align-items:center;justify-content:center;padding:12px;box-sizing:border-box}
 .game-shell{width:100%;max-width:480px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);border-radius:16px;padding:12px;box-shadow:0 10px 30px rgba(2,6,23,0.6);animation:slideIn 0.5s ease-out}
 @keyframes slideIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
@@ -66,7 +66,7 @@ select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 12px rgba(52
 /* Skill Tree */
 .skill-tree{display:flex;flex-direction:column;gap:10px}
 .skill-card{background:linear-gradient(135deg,rgba(52,211,153,0.1),rgba(34,197,94,0.05));border:1px solid rgba(52,211,153,0.2);border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;transition:all 0.3s}
-.skill-card:hover{background:linear-gradient(135deg,rgba(52,211,153,0.15),rgba(34,197,94,0.1));border-color:rgba(52,211,153,0.4);transform:translateX(4px)}
+.skill-card:hover{background:linear-gradient(135deg,rgba(52,211,153,0.15),rgba(34,197,94,0.1));border-color:rgba(52,211,153,0.4)}
 
 /* Enterprises Grid */
 .enterprises-grid{display:flex;flex-direction:column;gap:12px}
@@ -94,9 +94,8 @@ select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 12px rgba(52
 @keyframes sellPulse{0%{filter:brightness(1)}50%{filter:brightness(1.15)}100%{filter:brightness(1)}}
 .gold-glow{box-shadow:0 10px 40px rgba(251,191,36,0.25),0 0 18px rgba(251,191,36,0.12) inset}
 
-/* Dynamic fluid button morph */
-@keyframes fluidMorph{0%{border-radius:8px}25%{border-radius:12px}50%{border-radius:8px}75%{border-radius:12px}100%{border-radius:8px}}
-.btn:hover{animation:fluidMorph 0.8s ease-in-out}
+/* Dynamic fluid button effects - removed morphing to prevent layout shift */
+/* Keep shadow effects but avoid transform animations */
 
 /* Neon glow effects */
 @keyframes neonGlow{0%,100%{box-shadow:0 0 8px rgba(236,72,153,0.4),0 4px 12px rgba(236,72,153,0.2)}50%{box-shadow:0 0 15px rgba(236,72,153,0.6),0 4px 16px rgba(236,72,153,0.3)}}
